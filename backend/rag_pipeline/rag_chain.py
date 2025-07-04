@@ -10,7 +10,8 @@ import re
 SIMILARITY_THRESHOLD = 0.5  # currently unused but can be used if you add score-based filtering later
 
 def format_prompt(context_docs: List[Document], question: str, history: List[Dict[str, Any]] = None) -> str:
-    context = "\n\n".join([f"--- Context Chunk {i+1} ---\n{doc.page_content}" for i, doc in enumerate(context_docs)])
+    # Join context without mentioning "Context Chunk"
+    context = "\n\n".join([f"--- Document Section {i+1} ---\n{doc.page_content}" for i, doc in enumerate(context_docs)])
     
     history_str = ""
     if history:
@@ -23,11 +24,17 @@ Your main goal is to provide clear and helpful answers based on the context from
 When the provided context is brief, like a table of contents, use your own knowledge to explain the topic in a friendly, easy-to-understand way.
 For example, if the context only says "Chapter 3: Data Preprocessing," you should start by saying something like, "Well, Chapter 3 covers Data Preprocessing, which is a crucial step in any data project. It generally involves..." and then explain the concept.
 
+IMPORTANT INSTRUCTIONS:
+1. NEVER refer to "Context", "Chunks", "Document Sections" or any similar terms in your response.
+2. Format your response with proper paragraphs, bullet points, and spacing for readability.
+3. Present information in a conversational, well-structured manner.
+4. Do not mention where in the document you found the information.
+
 Here is the context from the library:
 {context}
 {history_str}
 
-Based on this context, your own knowledge, and the conversation history, please answer the question below.
+Based on this context and your own knowledge, please answer the question below.
 If the question is unrelated to the document's content, answer it using your general knowledge, but mention that it's outside the scope of the library.
 Question: {question}
 

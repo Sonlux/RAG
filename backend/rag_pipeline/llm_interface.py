@@ -33,18 +33,16 @@ def stream_llm(prompt):
     # Streams the response chunk by chunk and returns the full answer
     full_response = ""
     try:
-        # print("[DEBUG] Sending prompt to LLM API...") # Hiding debug output
+        # Debug output removed
         chunk_count = 0
         for chunk in client.stream([{"role": "user", "content": prompt}]):
-            # The original debug log was too verbose. This is cleaner.
-            # if hasattr(chunk, 'content') and chunk.content:
-            #      print(f"[DEBUG] Received chunk: content='{chunk.content}'") # Hiding debug output
             if hasattr(chunk, 'content') and chunk.content:
-                print(chunk.content, end="", flush=True)
+                # Remove console printing to avoid duplicating output in terminal
+                # print(chunk.content, end="", flush=True)
                 full_response += chunk.content
                 chunk_count += 1
         if chunk_count == 0:
-            # print("[DEBUG] No content received from LLM API.") # Hiding debug output
+            # No content received case
             pass
     except Exception as e:
         print(f"[LLM STREAM ERROR] {e}")

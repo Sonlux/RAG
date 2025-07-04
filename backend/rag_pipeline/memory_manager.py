@@ -3,12 +3,13 @@ from db.supabase_client import supabase
 from datetime import datetime
 from collections import defaultdict
 
-def store_chat(library, question, answer, pdf_name=None):
+def store_chat(library, question, answer, chat_id, pdf_name=None):
     if not pdf_name:
         meta = get_metadata_for_library(library)
         pdf_name = meta.get("pdf_name") or meta.get("source") or library
     chat_data = {
-        "library": library,
+        # "chat_id": chat_id,  # This column doesn't exist in the database
+        "library": library,    # Use library as the chat identifier
         "question": question,
         "answer": answer,
         "timestamp": datetime.utcnow().isoformat(),
@@ -16,19 +17,23 @@ def store_chat(library, question, answer, pdf_name=None):
     }
     supabase.table("chat_history").insert(chat_data).execute()
 
-def get_history(library, limit=5):
+def get_history(chat_id, limit=5):
     """
-    Fetches the most recent chat history for a given library, limited by the `limit` parameter.
+    Fetches the most recent chat history for a given library (using chat_id as library name),
+    limited by the `limit` parameter.
     """
-    response = supabase.table("chat_history") \
-        .select("question, answer") \
-        .eq("library", library) \
-        .order("timestamp", desc=True) \
-        .limit(limit) \
-        .execute()
-    
-    # The API returns the most recent messages first, so we reverse them to maintain chronological order for the prompt.
-    return list(reversed(response.data)) if response.data else []
+    try:
+        response = supabase.table("chat_history") \
+            .select("question, answer, timestamp") \
+            .eq("library", chat_id) \
+            .order("timestamp", desc=True) \
+            .limit(limit) \
+            .execute()
+        # The API returns the most recent messages first, so we reverse them to maintain chronological order for the prompt.
+        return list(reversed(response.data)) if response.data else []
+    except Exception as e:
+        print(f"Error fetching history for library {chat_id}: {str(e)}")
+        return []
 
 def get_all_history():
     """
@@ -41,26 +46,26 @@ def get_all_history():
         return []
 
     # Group chats by library
-    from collections import defaultdict
     chats_by_library = defaultdict(list)
     for chat in response.data:
-        chats_by_library[chat['library']].append(chat)
+        if chat.get('library'):
+            chats_by_library[chat['library']].append(chat)
 
-    # Process each library's history
+    # Process each chat session's history
     processed_history = []
-    for library_name, chats in chats_by_library.items():
+    for library, chats in chats_by_library.items():
         # Sort chats by timestamp to correctly identify the first and last message
         chats.sort(key=lambda x: x['timestamp'])
         if not chats:
             continue
         first_chat = chats[0]
         last_chat = chats[-1]
-        # Try to get the PDF name from the first chat's metadata if available
+        library_name = first_chat.get('library', '')
         pdf_name = first_chat.get('pdf_name') or library_name
         processed_history.append({
-            "id": library_name,
+            "id": library,  # Use library as the ID
             "libraryName": library_name,
-            "libraryId": library_name,
+            "libraryId": library,  # Use library as the libraryId
             "title": pdf_name,  # Use PDF name as title
             "lastMessage": last_chat.get('answer') if last_chat.get('answer') else last_chat['question'],
             "messageCount": len(chats),
@@ -87,10 +92,10 @@ def get_metadata_for_library(library: str):
                 return meta
     return {}
 
-def delete_history(library: str):
+def delete_history(chat_id: str):
     """
     Deletes all chat history for a given library.
     """
     from db.supabase_client import supabase
-    response = supabase.table("chat_history").delete().eq("library", library).execute()
+    response = supabase.table("chat_history").delete().eq("library", chat_id).execute()
     return response

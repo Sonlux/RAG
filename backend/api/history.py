@@ -13,19 +13,21 @@ def get_all_chat_histories():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/history/{library}")
-def get_chat_history(library: str):
+@router.get("/history/{chat_id}")
+def get_chat_history(chat_id: str):
     try:
-        history = get_history(library)
+        history = get_history(chat_id)
         return {"history": history}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error in get_chat_history for chat_id {chat_id}: {str(e)}")
+        # Return empty history instead of raising an exception
+        return {"history": []}
 
 
-@router.delete("/history/{library}")
-def delete_chat_history(library: str):
+@router.delete("/history/{chat_id}")
+def delete_chat_history(chat_id: str):
     try:
-        result = delete_history(library)
+        result = delete_history(chat_id)
         return {"success": True, "result": result.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

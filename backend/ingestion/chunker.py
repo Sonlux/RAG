@@ -2,18 +2,21 @@ import re
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 
+# Strict chapter heading pattern: e.g., 'Chapter 1', 'Chapter 2: Introduction', etc.
+CHAPTER_HEADING_PATTERN = r'(?m)^\s*(Chapter\s+\d+(?:[:.\-\s][^\n]*)?)'
+
 def split_text_into_chunks(text, chunk_size=800, overlap=200):
     splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
     return splitter.create_documents([text])
 
 def split_text_semantic(text, chunk_size=800, overlap=200, page_number=None):
     """
-    Advanced chunking: split by headings/sections, then by paragraphs, then by overlap.
+    Advanced chunking: split by strict chapter headings, then by paragraphs, then by overlap.
     Attaches section title and (optionally) page number as metadata to each chunk.
+    Only true chapter headings are used for section_title; all other chunks have section_title=None.
     """
-    # Regex to split and capture headings (e.g., Chapter, Section, numbers, etc.)
-    pattern = r'(?m)^\s*((Chapter|Section|\d+\.|[A-Z][a-z]+:)[^\n]*)'
-    matches = list(re.finditer(pattern, text))
+    # Strictly match only true chapter headings
+    matches = list(re.finditer(CHAPTER_HEADING_PATTERN, text, re.IGNORECASE))
     chunks = []
     if not matches:
         # Fallback: no headings found, treat whole text as one section
@@ -25,16 +28,17 @@ def split_text_semantic(text, chunk_size=800, overlap=200, page_number=None):
             chunks.append(doc)
         return chunks
 
-    # Split by headings, keep section titles
+    # Split by chapter headings, only assign section_title to true headings
     for i, match in enumerate(matches):
         start = match.end()
         end = matches[i+1].start() if i+1 < len(matches) else len(text)
-        section_title = match.group(1).strip()
+        section_title = match.group(0).strip()
         section_text = text[start:end].strip()
         if not section_text:
             continue
         splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
         for doc in splitter.create_documents([section_text]):
+            # Only assign section_title if this is a true chapter heading
             doc.metadata = {"section_title": section_title}
             if page_number is not None:
                 doc.metadata["page_number"] = page_number
