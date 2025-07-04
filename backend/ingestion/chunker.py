@@ -1,0 +1,53 @@
+import re
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.docstore.document import Document
+
+def split_text_into_chunks(text, chunk_size=800, overlap=200):
+    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
+    return splitter.create_documents([text])
+
+def split_text_semantic(text, chunk_size=800, overlap=200, page_number=None):
+    """
+    Advanced chunking: split by headings/sections, then by paragraphs, then by overlap.
+    Attaches section title and (optionally) page number as metadata to each chunk.
+    """
+    # Regex to split and capture headings (e.g., Chapter, Section, numbers, etc.)
+    pattern = r'(?m)^\s*((Chapter|Section|\d+\.|[A-Z][a-z]+:)[^\n]*)'
+    matches = list(re.finditer(pattern, text))
+    chunks = []
+    if not matches:
+        # Fallback: no headings found, treat whole text as one section
+        splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
+        for doc in splitter.create_documents([text]):
+            doc.metadata = {"section_title": None}
+            if page_number is not None:
+                doc.metadata["page_number"] = page_number
+            chunks.append(doc)
+        return chunks
+
+    # Split by headings, keep section titles
+    for i, match in enumerate(matches):
+        start = match.end()
+        end = matches[i+1].start() if i+1 < len(matches) else len(text)
+        section_title = match.group(1).strip()
+        section_text = text[start:end].strip()
+        if not section_text:
+            continue
+        splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
+        for doc in splitter.create_documents([section_text]):
+            doc.metadata = {"section_title": section_title}
+            if page_number is not None:
+                doc.metadata["page_number"] = page_number
+            chunks.append(doc)
+    return chunks
+
+def split_pdf_by_page_and_section(pages, chunk_size=800, overlap=200):
+    """
+    pages: list of (page_text, page_number) tuples
+    Returns: list of Document objects with section_title and page_number metadata
+    """
+    all_chunks = []
+    for page_text, page_number in pages:
+        chunks = split_text_semantic(page_text, chunk_size=chunk_size, overlap=overlap, page_number=page_number)
+        all_chunks.extend(chunks)
+    return all_chunks
