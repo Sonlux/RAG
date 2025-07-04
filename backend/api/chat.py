@@ -11,6 +11,7 @@ class ChatRequest(BaseModel):
     chat_id: str
     library: str
     question: str
+    pdf_name: str = None  # Make it optional with default None
 
 @router.post("/chat/new")
 def create_new_chat():
@@ -23,7 +24,9 @@ def chat_with_rag(request: ChatRequest):
         # Fetch recent chat history for this chat session
         history = get_history(request.chat_id, limit=5)
         answer = answer_question(request.question, request.library, history=history)
-        store_chat(request.library, request.question, answer, chat_id=request.chat_id, pdf_name=request.library)
+        # Use the provided pdf_name if available, otherwise default to library name
+        pdf_name = request.pdf_name if request.pdf_name else request.library
+        store_chat(request.library, request.question, answer, chat_id=request.chat_id, pdf_name=pdf_name)
         return {"answer": answer}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -19,16 +19,17 @@ def store_chat(library, question, answer, chat_id, pdf_name=None):
 
 def get_history(chat_id, limit=5):
     """
-    Fetches the most recent chat history for a given library (using chat_id as library name),
+    Fetches the most recent chat history for a given chat session and pdf,
     limited by the `limit` parameter.
     """
     try:
         response = supabase.table("chat_history") \
-            .select("question, answer, timestamp") \
+            .select("question, answer, timestamp, pdf_name") \
             .eq("library", chat_id) \
             .order("timestamp", desc=True) \
             .limit(limit) \
             .execute()
+        
         # The API returns the most recent messages first, so we reverse them to maintain chronological order for the prompt.
         return list(reversed(response.data)) if response.data else []
     except Exception as e:
