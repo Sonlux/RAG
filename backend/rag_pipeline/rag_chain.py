@@ -58,45 +58,63 @@ def resolve_followup_question(question: str, history: List[Dict[str, Any]]) -> s
     # Add more rules as needed for other follow-up types
     return question
 
-def answer_question(question: str, library: str, history: List[Dict[str, Any]] = None) -> str:
+def answer_question(question: str, library: str, pdf_name: str = None, history: List[Dict[str, Any]] = None) -> str:
     # Resolve follow-up questions using history
     resolved_question = resolve_followup_question(question, history)
+    
     # Special handling: count chapters if question asks for number of chapters
     if re.search(r"how many chapters|number of chapters|total chapters", resolved_question, re.IGNORECASE):
-        count = count_unique_chapters(library)
+        count = count_unique_chapters(library, pdf_name=pdf_name)
         if count > 0:
             return f"This book has {count} chapters."
         else:
             return "Sorry, I couldn't find chapter information in this book."
+            
     # Special handling: list chapters if question asks for chapter titles
     if re.search(r"what( are| were)?( the)? chapters|list chapters|chapter titles|chapters present", resolved_question, re.IGNORECASE):
-        titles = list_chapter_titles(library)
+        titles = list_chapter_titles(library, pdf_name=pdf_name)
         if titles:
             return "The chapters present in this book are:\n" + "\n".join(titles)
         else:
             return "Sorry, I couldn't find chapter titles in this book."
-    retriever = get_retriever(library=library, question=resolved_question)
-    docs = retriever.get_relevant_documents(resolved_question)
-    # print(f"[DEBUG] Retrieved {len(docs)} context documents.")
+            
+    # Get retriever with optional PDF filtering
+    try:
+        retriever = get_retriever(library=library, question=resolved_question, pdf_name=pdf_name)
+        # Use invoke instead of get_relevant_documents to avoid deprecation warning
+        docs = retriever.invoke(resolved_question)
+    except Exception as e:
+        print(f"Error in retriever: {str(e)}")
+        # Fallback to a simpler approach
+        embedding_fn = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        vectordb = Chroma(persist_directory="chroma_db", embedding_function=embedding_fn)
+        
+        # Create a simple filter
+        filter_dict = {"library": library}
+        docs = vectordb.similarity_search(resolved_question, k=15, filter=filter_dict)
+        
+        # If pdf_name is provided, filter the results in memory
+        if pdf_name and pdf_name != library:
+            docs = [doc for doc in docs if pdf_name in doc.metadata.get("source", "")]
 
     if not docs or len(docs) == 0:
-        # print("[DEBUG] No context found. Performing keyword fallback.")
-
+        # Fallback search, but still respect PDF filter if provided
         embedding_fn = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
         vectordb = Chroma(persist_directory="chroma_db", embedding_function=embedding_fn)
 
-        all_docs = vectordb.similarity_search("chapter", k=30, filter={"library": library})
+        # Create filter that includes library only
+        filter_dict = {"library": library}
+        all_docs = vectordb.similarity_search("chapter", k=30, filter=filter_dict)
+        
+        # Filter by PDF name in memory
+        if pdf_name and pdf_name != library:
+            all_docs = [doc for doc in all_docs if pdf_name in doc.metadata.get("source", "")]
+            
         fallback_docs = [doc for doc in all_docs if 'chapter' in doc.page_content.lower()]
         docs = fallback_docs[:5]
-        # print(f"[DEBUG] Fallback found {len(docs)} chapter-related docs.")
 
     if not docs:
         return "Sorry, I couldn't find any relevant content for this question."
 
-    # Optional: Show retrieved context chunks for debugging
-    # for i, doc in enumerate(docs[:3]):
-    #     print(f"\n--- Context Chunk {i+1} ---\n{doc.page_content[:300]}...\n")
-
     prompt = format_prompt(docs, question, history)
-    # print("\n🤖 Bot: ", end="", flush=True)
     return stream_llm(prompt)

@@ -33,17 +33,13 @@ def stream_llm(prompt):
     # Streams the response chunk by chunk and returns the full answer
     full_response = ""
     try:
-        # Debug output removed
-        chunk_count = 0
+        # Process chunks without debug output
         for chunk in client.stream([{"role": "user", "content": prompt}]):
             if hasattr(chunk, 'content') and chunk.content:
-                # Remove console printing to avoid duplicating output in terminal
-                # print(chunk.content, end="", flush=True)
                 full_response += chunk.content
-                chunk_count += 1
-        if chunk_count == 0:
-            # No content received case
-            pass
+        
+        # Return the complete response
+        return full_response
     except Exception as e:
-        print(f"[LLM STREAM ERROR] {e}")
-    return full_response
+        # Don't print errors to console, include them in the response
+        return f"Sorry, I encountered an error while generating a response."

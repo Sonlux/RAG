@@ -2,12 +2,14 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import chat, upload, history, libraries
+from api import chat, upload, history, libraries, auth
 from ingestion.pdf_loader import extract_pdf_flexibly
 from ingestion.chunker import split_text_into_chunks
 from ingestion.embed_store import embed_and_store
 from rag_pipeline.rag_chain import answer_question
 from rag_pipeline.memory_manager import store_chat, get_history
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 load_dotenv()
 
@@ -21,17 +23,25 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific frontend origin
+    allow_origins=["http://localhost:8081", "http://localhost:5173"],  # Allow frontend origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Create uploads directory if it doesn't exist
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 # Register routers
 app.include_router(upload.router, tags=["Upload"])
 app.include_router(chat.router, tags=["Chat"])
 app.include_router(history.router, tags=["History"])
 app.include_router(libraries.router, tags=["Libraries"])
+app.include_router(auth.router, tags=["Authentication"])
+
+# Mount static files for PDF preview
+app.mount("/pdf", StaticFiles(directory="uploads"), name="pdf")
 
 # CLI functions below kept for backward compatibility
 def ingest_pdf(file_path: str, library: str):

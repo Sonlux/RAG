@@ -62,10 +62,14 @@ def get_existing_libraries(persist_path="chroma_db") -> List[Dict]:
         # Format response
         result = []
         for lib in libraries:
-            # Count documents in this library
-            doc_count = 0
+            # Count unique PDF sources in this library, not document chunks
+            unique_sources = set()
             if all_metadata and "metadatas" in all_metadata:
-                doc_count = sum(1 for m in all_metadata["metadatas"] if m and "library" in m and m["library"] == lib)
+                for m in all_metadata["metadatas"]:
+                    if m and "library" in m and m["library"] == lib and "source" in m:
+                        unique_sources.add(m["source"])
+            
+            doc_count = len(unique_sources)
             
             result.append({
                 "name": lib,
@@ -127,9 +131,10 @@ def get_pdfs_for_library(library_name: str, persist_path="chroma_db"):
                     }
     return list(pdfs.values())
 
-def count_unique_chapters(library_name: str, persist_path="chroma_db") -> int:
+def count_unique_chapters(library_name: str, pdf_name: str = None, persist_path="chroma_db") -> int:
     """
     Count unique chapters in the vector store for a given library by scanning section_title metadata.
+    If pdf_name is provided, only count chapters from that specific PDF.
     Returns the number of unique chapters (case-insensitive, e.g., 'Chapter 1', 'chapter 1' are the same).
     """
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={"device": get_device()})
@@ -138,7 +143,14 @@ def count_unique_chapters(library_name: str, persist_path="chroma_db") -> int:
     chapters = set()
     if all_metadata and "metadatas" in all_metadata:
         for meta in all_metadata["metadatas"]:
+            # Check if this document belongs to the specified library and PDF (if provided)
             if meta and "library" in meta and meta["library"] == library_name:
+                # If pdf_name is provided, check if this document is from that PDF
+                if pdf_name and pdf_name != library_name:
+                    source = meta.get("source", "")
+                    if not source or pdf_name not in source:
+                        continue
+                
                 section = meta.get("section_title", "")
                 if section and section.lower().startswith("chapter"):
                     # Normalize to just 'chapter X' (ignore trailing text)
@@ -147,9 +159,10 @@ def count_unique_chapters(library_name: str, persist_path="chroma_db") -> int:
                         chapters.add(match.group(0).lower())
     return len(chapters)
 
-def list_chapter_titles(library_name: str, persist_path="chroma_db") -> list:
+def list_chapter_titles(library_name: str, pdf_name: str = None, persist_path="chroma_db") -> list:
     """
     Return a sorted list of unique chapter headings for a given library.
+    If pdf_name is provided, only list chapters from that specific PDF.
     Only includes lines that look like real chapter headings (e.g., 'Chapter 1: ...', 'Chapter 2. ...').
     """
     import re
@@ -160,7 +173,14 @@ def list_chapter_titles(library_name: str, persist_path="chroma_db") -> list:
     chapter_heading_pattern = re.compile(r"^Chapter\s+\d+([\.:\s-]+.+)?$", re.IGNORECASE)
     if all_metadata and "metadatas" in all_metadata:
         for meta in all_metadata["metadatas"]:
+            # Check if this document belongs to the specified library and PDF (if provided)
             if meta and "library" in meta and meta["library"] == library_name:
+                # If pdf_name is provided, check if this document is from that PDF
+                if pdf_name and pdf_name != library_name:
+                    source = meta.get("source", "")
+                    if not source or pdf_name not in source:
+                        continue
+                        
                 section = meta.get("section_title", "")
                 if section and chapter_heading_pattern.match(section.strip()):
                     chapters.add(section.strip())
