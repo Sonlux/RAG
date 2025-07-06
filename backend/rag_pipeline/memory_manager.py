@@ -61,11 +61,9 @@ def get_history(chat_id, limit=5):
         return []
 
 def get_all_history():
-    """
-    Fetches all chat histories, processes them, and returns them in a format
+    """Fetches all chat histories, processes them, and returns them in a format
     suitable for the frontend history page, including the PDF name if available.
-    Groups chats by both library and PDF name.
-    """
+    Groups chats by both library and PDF name."""
     response = supabase.table("chat_history").select("*",).order("timestamp", desc=True).execute()
 
     if not response.data:
@@ -93,13 +91,19 @@ def get_all_history():
         library_name = first_chat.get('library', '')
         pdf_name = first_chat.get('pdf_name') or library_name
         
+        # Extract the actual library name if it contains a chat_id prefix
+        display_library_name = library_name
+        if ':' in library_name:
+            # Split by the first colon to separate chat_id from library name
+            display_library_name = library_name.split(':', 1)[1]
+        
         # Generate a unique ID for this chat history
         history_id = key
         
         processed_history.append({
             "id": history_id,
-            "libraryName": library_name,
-            "libraryId": library_name,
+            "libraryName": display_library_name,  # Use the extracted library name
+            "libraryId": library_name,  # Keep the original ID for backend operations
             "pdfName": pdf_name,
             "title": pdf_name,  # Use PDF name as title
             "lastMessage": last_chat.get('answer') if last_chat.get('answer') else last_chat['question'],
