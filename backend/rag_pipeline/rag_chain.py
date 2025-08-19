@@ -1,7 +1,7 @@
 from .retriever import get_retriever
 from .llm_interface import stream_llm
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from typing import List, Dict, Any
 from ingestion.embed_store import count_unique_chapters, list_chapter_titles
@@ -9,9 +9,22 @@ import re
 
 SIMILARITY_THRESHOLD = 0.5  # currently unused but can be used if you add score-based filtering later
 
-def format_prompt(context_docs: List[Document], question: str, history: List[Dict[str, Any]] = None) -> str:
-    # Join context without mentioning "Context Chunk"
-    context = "\n\n".join([f"--- Document Section {i+1} ---\n{doc.page_content}" for i, doc in enumerate(context_docs)])
+def format_prompt(context_docs: List[Document], question: str, history: List[Dict[str, Any]] = None, show_sources: bool = False) -> str:
+    # Join context with optional source information
+    if show_sources:
+        context_parts = []
+        for i, doc in enumerate(context_docs):
+            source_info = ""
+            if doc.metadata:
+                source = doc.metadata.get("source", "")
+                page = doc.metadata.get("page_number", "")
+                if source:
+                    source_name = source.split("/")[-1] if "/" in source else source
+                    source_info = f" (from {source_name}" + (f", page {page}" if page else "") + ")"
+            context_parts.append(f"--- Document Section {i+1}{source_info} ---\n{doc.page_content}")
+        context = "\n\n".join(context_parts)
+    else:
+        context = "\n\n".join([f"--- Document Section {i+1} ---\n{doc.page_content}" for i, doc in enumerate(context_docs)])
     
     history_str = ""
     if history:
@@ -116,5 +129,7 @@ def answer_question(question: str, library: str, pdf_name: str = None, history: 
     if not docs:
         return "Sorry, I couldn't find any relevant content for this question."
 
-    prompt = format_prompt(docs, question, history)
+    # Show sources when searching across library (pdf_name is None)
+    show_sources = pdf_name is None
+    prompt = format_prompt(docs, question, history, show_sources=show_sources)
     return stream_llm(prompt)

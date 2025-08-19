@@ -3,10 +3,17 @@ from db.supabase_client import supabase
 from datetime import datetime
 from collections import defaultdict
 
-def store_chat(library, question, answer, chat_id, pdf_name=None):
-    if not pdf_name:
-        meta = get_metadata_for_library(library)
-        pdf_name = meta.get("pdf_name") or meta.get("source") or library
+def store_chat(library, question, answer, chat_id, pdf_name=None, metadata=None):
+    # Handle library mode (when pdf_name is None)
+    if pdf_name is None:
+        # Check if this is library mode from metadata
+        if metadata and metadata.get("chat_mode") == "library":
+            pdf_name = "Library"  # Special value for library-wide chats
+        else:
+            # Fallback: try to get a PDF name from metadata
+            meta = get_metadata_for_library(library)
+            pdf_name = meta.get("pdf_name") or meta.get("source") or library
+    
     chat_data = {
         # Don't add chat_id to database if the column doesn't exist
         "library": library,    # Store chat_id in the library field
@@ -15,6 +22,13 @@ def store_chat(library, question, answer, chat_id, pdf_name=None):
         "timestamp": datetime.utcnow().isoformat(),
         "pdf_name": pdf_name
     }
+    
+    # Add metadata if provided (chat_mode, search_scope, etc.)
+    # Only add fields that exist in the database schema
+    if metadata:
+        # For now, we'll skip adding metadata to avoid schema issues
+        # Future: We can add these fields to the database schema if needed
+        pass
     
     # If we want to use chat_id in the future, store it as part of the library field
     if chat_id:
