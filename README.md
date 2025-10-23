@@ -1,6 +1,32 @@
-# BookBot - Advanced RAG-Based PDF QA System
+# 📚 BookBot - Advanced RAG-Based PDF QA System
 
-BookBot is a sophisticated full-stack AI web application that enables users to upload PDF documents, organize them into libraries, and ask intelligent questions using advanced Retrieval-Augmented Generation (RAG) with hybrid search capabilities. The system provides accurate, contextual responses from uploaded documents while maintaining comprehensive chat history.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![React 18](https://img.shields.io/badge/react-18-blue.svg)](https://reactjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
+
+BookBot is a production-ready, full-stack AI application that enables intelligent document Q&A using advanced Retrieval-Augmented Generation (RAG). Upload PDFs, organize them into libraries, and get accurate, source-attributed answers powered by Meta Llama 4 and hybrid search technology.
+
+> **⚠️ Important**: BookBot enforces strict document-grounded responses. It will **refuse to answer questions** outside the scope of uploaded documents, preventing hallucinations and ensuring accuracy.
+
+## 📑 Table of Contents
+
+- [Key Features](#-key-features)
+- [Tech Stack](#-tech-stack)
+- [Prerequisites](#-prerequisites)
+- [Quick Start](#-quick-start)
+- [Project Structure](#-project-structure)
+- [Usage Guide](#-usage-guide)
+- [API Documentation](#-api-documentation)
+- [Deployment](#-deployment)
+- [Performance & Scalability](#-performance--scalability)
+- [Troubleshooting](#-troubleshooting)
+- [Security & Best Practices](#-security--best-practices)
+- [RAG Accuracy Features](#-rag-accuracy-features)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Support](#-support)
+- [Acknowledgements](#-acknowledgements)
 
 ## 🚀 Key Features
 
@@ -79,9 +105,17 @@ cd RAG
 ### 2. Backend Setup
 
 ```bash
+# Navigate to project root
+cd RAG
+
 # Create virtual environment
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -120,7 +154,7 @@ cd backend
 uvicorn main:app --reload
 ```
 
-Backend API will be available at http://localhost:8000
+Backend API will be available at: `http://localhost:8000`
 
 ### 5. Frontend Setup
 
@@ -135,11 +169,11 @@ echo "VITE_API_BASE_URL=http://localhost:8000" > .env
 npm run dev
 ```
 
-Frontend will be available at http://localhost:5173
+Frontend will be available at: `http://localhost:5173`
 
 ## 📁 Project Structure
 
-```
+```text
 RAG/
 ├── backend/
 │   ├── api/                    # FastAPI route handlers
@@ -233,15 +267,19 @@ python cli_metadata_extractor.py -i file1.pdf file2.pdf file3.pdf -o metadata.cs
 
 ## 🔧 API Documentation
 
-Once the backend is running, visit http://localhost:8000/docs for interactive API documentation.
+Once the backend is running, visit `http://localhost:8000/docs` for interactive API documentation powered by Swagger UI.
 
 ### Key Endpoints
 
-- `POST /upload` - Upload and process PDF documents
-- `POST /chat` - Send questions and receive AI responses
-- `GET /libraries` - List all document libraries
-- `GET /history/{library}` - Retrieve chat history
-- `POST /chat/new` - Create new chat session
+| Endpoint             | Method | Description                             |
+| -------------------- | ------ | --------------------------------------- |
+| `/upload`            | POST   | Upload and process PDF documents        |
+| `/chat`              | POST   | Send questions and receive AI responses |
+| `/chat/new`          | POST   | Create new chat session with unique ID  |
+| `/libraries`         | GET    | List all document libraries             |
+| `/libraries/{name}`  | GET    | Get specific library details            |
+| `/history/{chat_id}` | GET    | Retrieve chat history for a session     |
+| `/pdfs/{library}`    | GET    | List all PDFs in a library              |
 
 ## 🚀 Deployment
 
@@ -265,15 +303,49 @@ npm run build
 
 ## 🤝 Contributing
 
+Contributions are welcome! Please follow these steps:
+
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and commit: `git commit -m 'Add amazing feature'`
+4. Push to your branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request with a clear description of changes
 
-## 📄 License
+### Development Guidelines
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- Follow PEP 8 for Python code
+- Use TypeScript strict mode for frontend code
+- Write clear commit messages
+- Add tests for new features
+- Update documentation as needed
+
+## � License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+### MIT License Summary
+
+```text
+Copyright (c) 2025 Sonlux
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ## 🙏 Acknowledgements
 
@@ -293,6 +365,60 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Persistent Storage**: ChromaDB ensures fast similarity search at scale
 - **Optimized Embeddings**: Lightweight model balances speed and accuracy
 
+## 🐛 Troubleshooting
+
+### Backend Issues
+
+- **Import errors**: Ensure virtual environment is activated and dependencies installed
+- **ChromaDB errors**: Delete `backend/chroma_db/` folder and re-upload documents
+- **LLM API errors**: Verify NVIDIA API key is valid and has credits
+
+### Frontend Issues
+
+- **Connection refused**: Ensure backend is running on port 8000
+- **Build errors**: Delete `node_modules/` and `bun.lockb`, then run `npm install`
+- **Environment variables**: Verify `.env` file exists with correct `VITE_API_BASE_URL`
+
+## � Security & Best Practices
+
+### Environment Variables
+
+- **Never commit** `.env` files to version control
+- Use separate API keys for development and production
+- Rotate API keys regularly
+
+### Data Privacy
+
+- PDFs are stored as embeddings (vectors), not as files
+- Original PDFs can be deleted after ingestion
+- Chat history is stored in Supabase with user authentication
+
+### Production Deployment
+
+- Use HTTPS for all API endpoints
+- Implement rate limiting on API routes
+- Set up proper CORS policies
+- Use environment-specific configuration
+- Monitor API usage and costs
+
+## 📊 RAG Accuracy Features
+
+This project implements several critical features to ensure RAG accuracy:
+
+1. **Strict Document Grounding**: LLM is instructed to ONLY answer from provided context
+2. **Hybrid Search**: Combines semantic similarity with keyword matching for better retrieval
+3. **Metadata-Aware Chunking**: Preserves document structure (chapters, sections, pages)
+4. **Library Filtering**: Ensures queries only search within the intended document collection
+5. **Refusal Mechanism**: System politely refuses to answer questions outside document scope
+
+**See**: [RAG_ACCURACY_FIX.md](RAG_ACCURACY_FIX.md) for detailed prompt engineering documentation.
+
+## �📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/Sonlux/RAG/issues)
+- **Documentation**: See [CLI_METADATA_README.md](backend/CLI_METADATA_README.md) for CLI tool docs
+- **Accuracy Fix**: See [RAG_ACCURACY_FIX.md](RAG_ACCURACY_FIX.md) for prompt engineering details
+
 ---
 
-**Built with ❤️ for the AI community**
+### Built with ❤️ for the AI community
