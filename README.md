@@ -14,6 +14,7 @@ BookBot is a sophisticated full-stack AI web application that enables users to u
   - Single PDF focused conversations
 - **Persistent Chat History**: Maintain conversation context across sessions
 - **Real-time Streaming**: Live AI response generation with typing indicators
+- **CLI Metadata Extraction**: Command-line tool for batch processing 10,000+ PDFs and exporting metadata to CSV
 
 ### Advanced RAG Features
 
@@ -192,6 +193,32 @@ RAG/
 2. **Upload PDFs**: Drag and drop or browse to upload documents
 3. **Start Chatting**: Ask questions about your uploaded content
 4. **Review History**: Access previous conversations and responses
+
+### CLI Metadata Extraction
+
+Extract metadata from large PDF collections:
+
+```bash
+# Extract metadata from all PDFs in a directory
+cd backend
+python cli_metadata_extractor.py -i ./documents -o metadata.csv
+
+# Process 10,000 corporate documents
+python cli_metadata_extractor.py -i /path/to/corporate_docs -o corporate_metadata.csv --verbose
+
+# Extract from multiple files
+python cli_metadata_extractor.py -i file1.pdf file2.pdf file3.pdf -o metadata.csv
+```
+
+**What gets extracted:**
+
+- Creation date & modification date
+- Author, title, subject
+- File size & page count
+- Internal links and annotations
+- Creator & producer software
+
+**See full documentation:** [`backend/CLI_METADATA_README.md`](backend/CLI_METADATA_README.md)
 
 ### Chat Modes
 
